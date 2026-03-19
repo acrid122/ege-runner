@@ -560,75 +560,64 @@ function drawPlayerSmooth(px, py, grounded) {
   ctx.globalAlpha = 1;
 
   // ── ОЧКИ ──
-  const ex  = hcx + 1.8, ey  = hcy + 0.7;  // правая (ближняя) линза
-  const ex2 = hcx - 1.4, ey2 = hcy + 0.9;  // левая (дальняя) линза
+  const ey  = hcy + 0.6;
+  const ex  = hcx + 1.6;   // правая (ближняя) линза
+  const ex2 = hcx - 1.6;   // левая (дальняя) линза
+  const lrx = 1.75, lry = 1.4;   // обе линзы одного размера
 
   // Стёкла (лёгкая голубая тонировка)
-  ctx.fillStyle = 'rgba(130,200,255,0.16)';
-  ctx.beginPath(); ctx.ellipse(ex,  ey,  2.1, 1.65, 0.06, 0, Math.PI*2); ctx.fill();
-  ctx.globalAlpha = 0.6;
-  ctx.fillStyle = 'rgba(130,200,255,0.16)';
-  ctx.beginPath(); ctx.ellipse(ex2, ey2, 1.15, 0.92, 0.14, 0, Math.PI*2); ctx.fill();
-  ctx.globalAlpha = 1;
+  ctx.fillStyle = 'rgba(130,200,255,0.18)';
+  ctx.beginPath(); ctx.ellipse(ex,  ey, lrx, lry, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(ex2, ey, lrx, lry, 0, 0, Math.PI*2); ctx.fill();
 
-  // Зрачок правого глаза (сквозь стекло)
+  // Зрачки
   ctx.fillStyle = '#1a237e';
-  ctx.beginPath(); ctx.arc(ex + 0.1, ey, 0.72, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(ex,  ey + 0.1, 0.7, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(ex2, ey + 0.1, 0.7, 0, Math.PI*2); ctx.fill();
   ctx.fillStyle = '#080818';
-  ctx.beginPath(); ctx.arc(ex + 0.22, ey + 0.1, 0.38, 0, Math.PI*2); ctx.fill();
-  // Блик на правой линзе
-  ctx.globalAlpha = 0.5; ctx.fillStyle = '#fff';
-  ctx.beginPath(); ctx.ellipse(ex + 0.6, ey - 0.65, 0.55, 0.26, -0.5, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(ex  + 0.15, ey + 0.2, 0.36, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(ex2 + 0.15, ey + 0.2, 0.36, 0, Math.PI*2); ctx.fill();
+  // Блики
+  ctx.globalAlpha = 0.55; ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.ellipse(ex  + 0.5, ey - 0.55, 0.5, 0.22, -0.5, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(ex2 + 0.5, ey - 0.55, 0.5, 0.22, -0.5, 0, Math.PI*2); ctx.fill();
   ctx.globalAlpha = 1;
 
-  // Зрачок левого глаза (частичный)
-  ctx.globalAlpha = 0.6;
-  ctx.fillStyle = '#0d47a1';
-  ctx.beginPath(); ctx.arc(ex2, ey2, 0.5, 0, Math.PI*2); ctx.fill();
-  ctx.fillStyle = '#080818';
-  ctx.beginPath(); ctx.arc(ex2 + 0.1, ey2 + 0.1, 0.26, 0, Math.PI*2); ctx.fill();
-  ctx.globalAlpha = 1;
-
-  // Оправа правой линзы
-  ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 0.7;
-  ctx.beginPath(); ctx.ellipse(ex,  ey,  2.1,  1.65, 0.06, 0, Math.PI*2); ctx.stroke();
-  // Оправа левой линзы (дальняя — чуть тоньше)
-  ctx.globalAlpha = 0.75; ctx.lineWidth = 0.55;
-  ctx.beginPath(); ctx.ellipse(ex2, ey2, 1.15, 0.92, 0.14, 0, Math.PI*2); ctx.stroke();
-  ctx.globalAlpha = 1;
+  // Оправы
+  ctx.strokeStyle = '#1a1a1a'; ctx.lineWidth = 0.65;
+  ctx.beginPath(); ctx.ellipse(ex,  ey, lrx, lry, 0, 0, Math.PI*2); ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(ex2, ey, lrx, lry, 0, 0, Math.PI*2); ctx.stroke();
 
   // Переносица (мост между линзами)
   ctx.strokeStyle = '#333'; ctx.lineWidth = 0.55;
   ctx.beginPath();
-  ctx.moveTo(ex2 + 1.05, ey2 - 0.1);
-  ctx.quadraticCurveTo((ex2 + ex) / 2, ey - 1.1, ex - 2.0, ey - 0.1);
+  ctx.moveTo(ex2 + lrx, ey);
+  ctx.quadraticCurveTo((ex2 + ex) * 0.5, ey - 0.9, ex - lrx, ey);
   ctx.stroke();
 
   // Дужка правая (к уху)
   ctx.lineWidth = 0.5;
   ctx.beginPath();
-  ctx.moveTo(ex + 2.05, ey + 0.15);
-  ctx.quadraticCurveTo(hcx + 5.3, ey + 0.9, hcx + 5.3, ey + 2.2);
+  ctx.moveTo(ex + lrx, ey + 0.2);
+  ctx.quadraticCurveTo(hcx + 5.2, ey + 0.8, hcx + 5.2, ey + 2.0);
   ctx.stroke();
 
   // Дужка левая (за голову)
   ctx.globalAlpha = 0.5;
   ctx.beginPath();
-  ctx.moveTo(ex2 - 1.1, ey2 + 0.15);
-  ctx.quadraticCurveTo(hcx - 4.8, ey2 + 0.5, hcx - 4.8, ey2 + 1.6);
+  ctx.moveTo(ex2 - lrx, ey + 0.2);
+  ctx.quadraticCurveTo(hcx - 5.2, ey + 0.8, hcx - 5.2, ey + 2.0);
   ctx.stroke();
   ctx.globalAlpha = 1;
 
-  // Брови над линзами
-  ctx.strokeStyle = '#4e342e'; ctx.lineWidth = 0.82;
+  // Брови (симметричные)
+  ctx.strokeStyle = '#4e342e'; ctx.lineWidth = 0.8; ctx.lineCap = 'round';
   ctx.beginPath();
-  ctx.moveTo(ex - 1.65, ey - 2.0); ctx.quadraticCurveTo(ex, ey - 2.6, ex + 1.65, ey - 2.0);
+  ctx.moveTo(ex  - 1.5, ey - 1.9); ctx.quadraticCurveTo(ex,  ey - 2.5, ex  + 1.5, ey - 1.9);
   ctx.stroke();
-  ctx.globalAlpha = 0.7; ctx.lineWidth = 0.65;
   ctx.beginPath();
-  ctx.moveTo(ex2 - 0.9, ey2 - 1.15); ctx.quadraticCurveTo(ex2, ey2 - 1.6, ex2 + 0.9, ey2 - 1.05);
+  ctx.moveTo(ex2 - 1.5, ey - 1.9); ctx.quadraticCurveTo(ex2, ey - 2.5, ex2 + 1.5, ey - 1.9);
   ctx.stroke();
-  ctx.globalAlpha = 1;
 
   // Нос (едва заметный)
   ctx.fillStyle = 'rgba(180,90,40,0.25)';
@@ -1286,6 +1275,27 @@ function drawBg() {
   drawSun(night);
   drawMoon(night);
 
+  // ── Ближний слой: силуэт леса (создаёт глубину) ──────────────────
+  {
+    const fc = night > 0.5 ? '#040c1a' : '#2a3e2e';
+    ctx.fillStyle = fc;
+    ctx.globalAlpha = 0.82;
+    ctx.beginPath();
+    ctx.moveTo(0, GROUND_Y);
+    const fScroll = groundX * 0.18;
+    for (let x = 0; x <= W + 8; x += 4) {
+      const sx = x + fScroll;
+      const base = Math.sin(sx * 0.055) * 3 + Math.sin(sx * 0.13) * 1.5;
+      // Чередующиеся кроны деревьев
+      const tree = Math.sin(sx * 0.32) > 0.25 ? 4.5 + (~~(sx * 0.17) % 4) : 0;
+      ctx.lineTo(x, GROUND_Y - 5 - base - tree);
+    }
+    ctx.lineTo(W, GROUND_Y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  }
+
   // ── Горы (дальний план) ──────────────────────────────────────────
   const mAlpha = 0.3 + (1 - night) * 0.55;
   ctx.globalAlpha = mAlpha;
@@ -1342,27 +1352,6 @@ function drawBg() {
     ctx.beginPath(); ctx.arc(c.x + c.w*0.5, c.y + r*0.28, r*0.52, 0, Math.PI*2); ctx.fill();
   });
   ctx.globalAlpha = 1;
-
-  // ── Ближний слой: силуэт леса (создаёт глубину) ──────────────────
-  {
-    const fc = night > 0.5 ? '#040c1a' : '#2a3e2e';
-    ctx.fillStyle = fc;
-    ctx.globalAlpha = 0.82;
-    ctx.beginPath();
-    ctx.moveTo(0, GROUND_Y);
-    const fScroll = groundX * 0.18;
-    for (let x = 0; x <= W + 8; x += 4) {
-      const sx = x + fScroll;
-      const base = Math.sin(sx * 0.055) * 3 + Math.sin(sx * 0.13) * 1.5;
-      // Чередующиеся кроны деревьев
-      const tree = Math.sin(sx * 0.32) > 0.25 ? 4.5 + (~~(sx * 0.17) % 4) : 0;
-      ctx.lineTo(x, GROUND_Y - 5 - base - tree);
-    }
-    ctx.lineTo(W, GROUND_Y);
-    ctx.closePath();
-    ctx.fill();
-    ctx.globalAlpha = 1;
-  }
 
   // ── Земля ────────────────────────────────────────────────────────
   // Основа
