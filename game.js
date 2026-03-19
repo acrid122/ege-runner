@@ -524,39 +524,35 @@ function drawPlayerSmooth(px, py, grounded) {
   ctx.strokeStyle = '#d84315'; ctx.lineWidth = 0.45;
   ctx.beginPath(); ctx.ellipse(hcx - 4.2, hcy + 0.5, 0.42, 0.75, 0.2, 0, Math.PI * 2); ctx.stroke();
 
-  // ── ВОЛОСЫ (чёткий аниме-стиль) ──
-  const hairG = ctx.createLinearGradient(hcx, hcy - 8, hcx + 1, hcy + 1);
-  hairG.addColorStop(0, '#8d6e63'); hairG.addColorStop(0.5, '#5d4037'); hairG.addColorStop(1, '#3e2723');
+  // ── ВОЛОСЫ ──
+  const hairG = ctx.createLinearGradient(hcx, hcy - 6, hcx, hcy + 1);
+  hairG.addColorStop(0, '#8d6e63'); hairG.addColorStop(0.6, '#5d4037'); hairG.addColorStop(1, '#3e2723');
   ctx.fillStyle = hairG;
-  // Основная масса
+  // Основная шапка — плотно облегает голову сверху
   ctx.beginPath();
-  ctx.arc(hcx, hcy, 4.8, Math.PI * 1.1, Math.PI * 2.1);
-  ctx.lineTo(hcx + 5.5, hcy + 1.5);
-  ctx.bezierCurveTo(hcx + 5.5, hcy - 1, hcx + 4, hcy - 3.5, hcx + 3.5, hcy - 5.5);
-  ctx.bezierCurveTo(hcx + 2, hcy - 7.5, hcx - 1, hcy - 7, hcx - 3.5, hcy - 5.5);
-  ctx.bezierCurveTo(hcx - 5.5, hcy - 4, hcx - 5.5, hcy - 0.5, hcx - 5.5, hcy + 0.8);
+  ctx.moveTo(hcx - 4.8, hcy + 0.5);
+  ctx.bezierCurveTo(hcx - 5.2, hcy - 2.5, hcx - 4, hcy - 5.5, hcx - 1.5, hcy - 5.8);
+  ctx.bezierCurveTo(hcx + 0.5, hcy - 6.2, hcx + 3, hcy - 5.8, hcx + 4.8, hcy - 4.0);
+  ctx.bezierCurveTo(hcx + 5.5, hcy - 2.5, hcx + 5.2, hcy - 0.5, hcx + 5.0, hcy + 0.5);
+  ctx.bezierCurveTo(hcx + 3.5, hcy - 0.8, hcx - 3.0, hcy - 0.8, hcx - 4.8, hcy + 0.5);
   ctx.closePath(); ctx.fill();
-  // Шип 1 (главный)
+  // Чёлка (небольшие прядки спереди — над правым виском)
   ctx.beginPath();
-  ctx.moveTo(hcx + 2, hcy - 5.5);
-  ctx.bezierCurveTo(hcx + 3, hcy - 9.0, hcx + 6, hcy - 8.5, hcx + 5, hcy - 5.5);
+  ctx.moveTo(hcx + 3.5, hcy - 3.5);
+  ctx.bezierCurveTo(hcx + 4.5, hcy - 2.0, hcx + 5.0, hcy - 0.5, hcx + 4.8, hcy + 0.8);
+  ctx.bezierCurveTo(hcx + 3.5, hcy + 0.2, hcx + 3.0, hcy - 1.5, hcx + 3.5, hcy - 3.5);
   ctx.closePath(); ctx.fill();
-  // Шип 2
+  // Прядь на ветру (за спину)
+  ctx.globalAlpha = 0.6;
   ctx.beginPath();
-  ctx.moveTo(hcx - 0.5, hcy - 6.5);
-  ctx.bezierCurveTo(hcx + 0.5, hcy - 9.5, hcx + 3.5, hcy - 9.0, hcx + 2.5, hcy - 6.5);
-  ctx.closePath(); ctx.fill();
-  // Прядь на ветру (влево = за спину при беге вправо)
-  ctx.globalAlpha = 0.68;
-  ctx.beginPath();
-  ctx.moveTo(hcx - 2, hcy - 3.5);
-  ctx.bezierCurveTo(hcx - 5, hcy - 5, hcx - 8, hcy - 4, hcx - 8.5, hcy - 2.5);
-  ctx.bezierCurveTo(hcx - 8, hcy - 1.8, hcx - 5.5, hcy - 2.5, hcx - 3, hcy - 2.2);
+  ctx.moveTo(hcx - 4.0, hcy - 1.0);
+  ctx.bezierCurveTo(hcx - 6.5, hcy - 2.5, hcx - 8.0, hcy - 1.5, hcx - 7.5, hcy + 0.5);
+  ctx.bezierCurveTo(hcx - 6.0, hcy + 0.8, hcx - 4.5, hcy + 0.2, hcx - 4.0, hcy - 1.0);
   ctx.closePath(); ctx.fill();
   ctx.globalAlpha = 1;
-  // Блик на волосах
-  ctx.globalAlpha = 0.22; ctx.fillStyle = '#d7ccc8';
-  ctx.beginPath(); ctx.ellipse(hcx + 1, hcy - 4.5, 2, 0.9, -0.3, 0, Math.PI * 2); ctx.fill();
+  // Блик
+  ctx.globalAlpha = 0.2; ctx.fillStyle = '#d7ccc8';
+  ctx.beginPath(); ctx.ellipse(hcx + 0.5, hcy - 4.2, 1.8, 0.7, -0.2, 0, Math.PI * 2); ctx.fill();
   ctx.globalAlpha = 1;
 
   // ── ОЧКИ ──
@@ -1274,27 +1270,6 @@ function drawBg() {
   drawAurora(night);
   drawSun(night);
   drawMoon(night);
-
-  // ── Ближний слой: силуэт леса (создаёт глубину) ──────────────────
-  {
-    const fc = night > 0.5 ? '#040c1a' : '#2a3e2e';
-    ctx.fillStyle = fc;
-    ctx.globalAlpha = 0.82;
-    ctx.beginPath();
-    ctx.moveTo(0, GROUND_Y);
-    const fScroll = groundX * 0.18;
-    for (let x = 0; x <= W + 8; x += 4) {
-      const sx = x + fScroll;
-      const base = Math.sin(sx * 0.055) * 3 + Math.sin(sx * 0.13) * 1.5;
-      // Чередующиеся кроны деревьев
-      const tree = Math.sin(sx * 0.32) > 0.25 ? 4.5 + (~~(sx * 0.17) % 4) : 0;
-      ctx.lineTo(x, GROUND_Y - 5 - base - tree);
-    }
-    ctx.lineTo(W, GROUND_Y);
-    ctx.closePath();
-    ctx.fill();
-    ctx.globalAlpha = 1;
-  }
 
   // ── Горы (дальний план) ──────────────────────────────────────────
   const mAlpha = 0.3 + (1 - night) * 0.55;
