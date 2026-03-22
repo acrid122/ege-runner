@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>ЕГЭ Раннер</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      background: #0d1b2e;
+      width: 100%; height: 100%;
+      overflow: hidden;
+    }
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    canvas {
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      display: block;
+    }
+
+    /* Экран поворота — виден только в портретном режиме на touch-устройствах */
+    #rotate {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: #0d1b2e;
+      z-index: 999;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: #ffd700;
+      font-family: monospace;
+      text-align: center;
+      gap: 16px;
+    }
+    #rotate .icon {
+      font-size: 64px;
+      animation: spin 2s ease-in-out infinite alternate;
+    }
+    #rotate p { font-size: 14px; color: #a5d6a7; line-height: 1.6; }
+    @keyframes spin {
+      from { transform: rotate(-20deg); }
+      to   { transform: rotate(20deg); }
+    }
+    @media (pointer: coarse) and (orientation: portrait) {
+      #rotate { display: flex; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Экран поворота (мобильные, портрет) -->
+  <div id="rotate">
+    <div class="icon">📱</div>
+    <div style="font-size:18px; font-weight:bold;">Переверни телефон!</div>
+    <p>ЕГЭ Раннер работает<br>в горизонтальном режиме</p>
+  </div>
+
+  <canvas id="c"></canvas>
+
+  <!-- Отладка ошибок -->
+  <div id="err" style="display:none;position:fixed;top:0;left:0;width:100%;padding:10px;
+    background:#ef5350;color:#fff;font:12px monospace;z-index:9999;word-break:break-all;"></div>
+
+  <script>
+    window.onerror = function(msg, src, line) {
+      var el = document.getElementById('err');
+      if (el) { el.style.display = 'block'; el.textContent = 'JS Error: ' + msg + '\n' + src + ':' + line; }
+    };
+  </script>
+  <script src="questions.js?v=3"></script>
+  <script src="game.js?v=3"></script>
+</body>
+</html>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Canvas Test</title>
+  <style>
+    body { margin: 0; background: #000; display: flex; justify-content: center; align-items: center; height: 100vh; flex-direction: column; }
+    canvas { border: 2px solid #0f0; }
+    #log { color: #0f0; font: 12px monospace; margin-top: 10px; white-space: pre; }
+  </style>
+</head>
+<body>
+<canvas id="c" width="320" height="180"></canvas>
+<div id="log">Initializing...</div>
+<script>
+  var log = document.getElementById('log');
+  function add(msg) { log.textContent += '\n' + msg; }
+
+  try {
+    add('1. DOM ready');
+    var canvas = document.getElementById('c');
+    add('2. canvas found: ' + !!canvas);
+    var ctx = canvas.getContext('2d');
+    add('3. ctx created: ' + !!ctx);
+    ctx.fillStyle = '#1565c0';
+    ctx.fillRect(0, 0, 320, 180);
+    ctx.fillStyle = '#ffd700';
+    ctx.font = '20px monospace';
+    ctx.fillText('Canvas OK!', 90, 100);
+    add('4. initial draw OK');
+
+    var frame = 0;
+    var dpr = window.devicePixelRatio || 1;
+    add('5. devicePixelRatio: ' + dpr);
+    add('6. matchMedia support: ' + (typeof window.matchMedia));
+    add('7. localStorage support: ' + (typeof localStorage));
+
+    function loop() {
+      frame++;
+      ctx.fillStyle = 'rgba(21,101,192,0.1)';
+      ctx.fillRect(0, 0, 320, 180);
+      ctx.fillStyle = '#ffd700';
+      ctx.fillRect(frame % 300, 80, 20, 20);
+      if (frame === 1) add('8. animation started');
+      if (frame < 500) requestAnimationFrame(loop);
+      else add('9. 500 frames done — ALL OK');
+    }
+    requestAnimationFrame(loop);
+    add('requestAnimationFrame called');
+  } catch(e) {
+    add('ERROR: ' + e.message);
+    add('Stack: ' + e.stack);
+  }
+</script>
+</body>
+</html>
