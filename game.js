@@ -24,9 +24,14 @@ const isMobile = ('ontouchstart' in window) ||
   (typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches);
 
 function resize() {
-  const s = Math.min(window.innerWidth / (W * PIXEL), window.innerHeight / (H * PIXEL));
-  canvas.style.width  = Math.round(W * PIXEL * s) + 'px';
-  canvas.style.height = Math.round(H * PIXEL * s) + 'px';
+  // Виртуальное разрешение фиксировано (W×H), CSS управляет масштабом.
+  // На ПК сохраняем 16:9 через CSS (aspect-ratio в index.html).
+  // На мобильных растягиваем на весь экран в landscape-режиме.
+  if (isMobile) {
+    canvas.style.width  = window.innerWidth  + 'px';
+    canvas.style.height = window.innerHeight + 'px';
+  }
+  // На десктопе CSS aspect-ratio + height:100dvh сам держит пропорции.
 }
 window.addEventListener('resize', resize);
 resize();
@@ -85,10 +90,13 @@ let frame   = 0;
 let meters  = 0;
 let dodged  = 0;
 let combo   = 0;
-let score   = 0;
+let score      = 0;
+let quizBonus  = 0;   // бонусные очки за квиз (не перезаписываются calcScore)
 let hiScore = +localStorage.getItem('hi') || 0;
 let shake   = 0;
 let flash   = 0;
+let frameTime = 0;   // dt-нормализованный таймер для анимаций (60fps-эквивалент)
+let dustT   = 0;     // таймер для частиц пыли под ногами
 
 // ── Ввод ─────────────────────────────────────────────────────────
 let jumpBuf = 0;
@@ -99,8 +107,9 @@ function onJump() {
 }
 
 window.addEventListener('keydown', e => {
-  if (e.code === 'Space' || e.code === 'ArrowUp') { e.preventDefault(); onJump(); }
+  if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') { e.preventDefault(); onJump(); }
 });
+canvas.addEventListener('contextmenu', e => e.preventDefault());
 function getVirtualCoords(e) {
   const rect = canvas.getBoundingClientRect();
   const clientX = e.touches ? e.touches[0].clientX : e.clientX;
@@ -134,17 +143,6 @@ function lerpRGB(a, b, t) {
 }
 function rgbStr([r, g, b]) { return `rgb(${r},${g},${b})`; }
 
-function skyColor() {
-  const m = Math.min(meters, SKY_STOPS[SKY_STOPS.length - 1][0]);
-  for (let i = 0; i < SKY_STOPS.length - 1; i++) {
-    const [ma, ca] = SKY_STOPS[i];
-    const [mb, cb] = SKY_STOPS[i + 1];
-    if (m >= ma && m <= mb) {
-      return rgbStr(lerpRGB(ca, cb, (m - ma) / (mb - ma)));
-    }
-  }
-  return rgbStr(SKY_STOPS[SKY_STOPS.length - 1][1]);
-}
 
 function nightness() { return Math.min(Math.max((meters - 300) / 200, 0), 1); }
 
@@ -201,9 +199,9 @@ function drawAurora(night) {
   const bands = [[0,220,100],[80,180,255],[100,60,220],[200,0,255]];
   ctx.save();
   bands.forEach((c, i) => {
-    const yw = 16 + i * 10 + Math.sin(frame * 0.018 + i * 1.4) * 9;
-    const bh =  8 + Math.cos(frame * 0.013 + i * 0.8) * 5;
-    const al = v * (0.12 + Math.sin(frame * 0.022 + i) * 0.07);
+    const yw = 16 + i * 10 + Math.sin(frameTime * 0.018 + i * 1.4) * 9;
+    const bh =  8 + Math.cos(frameTime * 0.013 + i * 0.8) * 5;
+    const al = v * (0.12 + Math.sin(frameTime * 0.022 + i) * 0.07);
     const g = ctx.createLinearGradient(0, yw, 0, yw + bh);
     const cs = `rgba(${c.join(',')},`;
     g.addColorStop(0, cs + '0)'); g.addColorStop(0.4, cs + al + ')');
@@ -386,7 +384,7 @@ function initSprites() {
 // ── Плавная отрисовка персонажа (vector canvas, без пиксельных спрайтов) ──
 function drawPlayerSmooth(px, py, grounded) {
   const cx  = px + PLAYER_W / 2;
-  const ph  = frame * 0.19;
+  const ph  = frameTime * 0.19;
   const lg  = grounded ? Math.sin(ph) * 4.5 : 0;
   const arm = grounded ? Math.sin(ph) * 3.0 : -2.5;
 
@@ -654,11 +652,11 @@ const PL = {
     spawnPuff(this.x + this.W / 2, this.y + this.H);
   },
 
-  update() {
+  update(dt) {
     if (this.dead) {
-      this.deadT++;
-      this.vy = Math.min(this.vy + GRAVITY * 0.7, 12);
-      this.y  = Math.min(this.y + this.vy, GROUND_Y + 40);
+      this.deadT += dt;
+      this.vy = Math.min(this.vy + GRAVITY * 0.7 * dt, 12);
+      this.y  = Math.min(this.y + this.vy * dt, GROUND_Y + 40);
       if (this.deadT > 90) {
         submitScore(score);
         state = 'gameover';
@@ -667,8 +665,8 @@ const PL = {
     }
     if (jumpBuf > 0 && (this.jumpsLeft > 0 || this.coyoteT > 0)) this.doJump();
 
-    this.vy = Math.min(this.vy + GRAVITY, 18);
-    this.y += this.vy;
+    this.vy = Math.min(this.vy + GRAVITY * dt, 18);
+    this.y += this.vy * dt;
 
     const gY = GROUND_Y - this.H;
     if (this.y >= gY) {
@@ -676,12 +674,12 @@ const PL = {
       this.grounded = true; this.jumpsLeft = 2; this.coyoteT = COYOTE;
     } else {
       this.grounded = false;
-      if (this.coyoteT > 0) this.coyoteT--;
+      if (this.coyoteT > 0) this.coyoteT = Math.max(0, this.coyoteT - dt);
     }
 
     if (this.grounded) {
       const rate = Math.max(2, ~~(9 - gSpeed * 0.5));
-      if (++this.animT >= rate) { this.animT = 0; this.animF = (this.animF + 1) & 3; }
+      if ((this.animT += dt) >= rate) { this.animT = 0; this.animF = (this.animF + 1) & 3; }
     }
   },
 
@@ -754,7 +752,7 @@ function updateObs(dt) {
   const pl = PL.hitbox();
   for (const o of obstacles) {
     o.x -= gSpeed * dt;
-    o.animT++;
+    o.animT += dt;
 
     if (!o.passed && o.x + o.w < PL.x) {
       o.passed = true;
@@ -774,12 +772,16 @@ function updateObs(dt) {
         spawnBurst(PL.x + 6, PL.y + 9, '#ef5350', 14);
       }
       // Коллизия с лазером дрона: луч идёт от низа дрона до земли.
-      // Игрок может избежать, прыгнув выше начала луча (y < o.y + o.h).
+      // Игрок может избежать, прыгнув выше начала луча (pl.y + pl.h - 1 <= laserTop).
+      // Sweep-check: проверяем весь диапазон движения дрона за кадр,
+      // чтобы при высоком dt (лаг) луч не «просочился» сквозь игрока.
       if (!PL.dead && o.id === 'drone') {
-        const lx = o.x + o.w / 2;
+        const lx     = o.x + o.w / 2;          // позиция центра ПОСЛЕ сдвига
+        const lxPrev = lx + gSpeed * dt;        // позиция центра ДО сдвига
         const laserTop = o.y + o.h;
-        const laserHW = 3; // полуширина луча для коллизии (компромисс видимого и честного)
-        if (pl.x + pl.w - 1 > lx - laserHW && pl.x + 1 < lx + laserHW &&
+        const laserHW = 3;
+        // Горизонтальная проверка через диапазон: луч пересёк зону игрока?
+        if (lxPrev > pl.x + 1 - laserHW && lx < pl.x + pl.w - 1 + laserHW &&
             pl.y + 1 < GROUND_Y && pl.y + pl.h - 1 > laserTop) {
           PL.dead = true; combo = 0; shake = 18; flash = 0.55;
           spawnBurst(lx, GROUND_Y - 4, '#ff1744', 12);
@@ -1126,9 +1128,9 @@ function spawnText(x, y, text) {
     life: 65, maxLife: 65, text, color: '#ffd700' });
 }
 
-function updateParticles() {
+function updateParticles(dt) {
   particles = particles.filter(p => {
-    p.x += p.vx; p.y += p.vy; p.vy += 0.07; return --p.life > 0;
+    p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 0.07 * dt; p.life -= dt; return p.life > 0;
   });
 }
 
@@ -1253,7 +1255,7 @@ function drawBg() {
   if (night > 0.05) {
     ctx.lineCap = 'round';
     stars.forEach(s => {
-      const twinkle = 0.6 + Math.sin(s.b * 7 + frame * 0.04) * 0.4;
+      const twinkle = 0.6 + Math.sin(s.b * 7 + frameTime * 0.04) * 0.4;
       const sa = night * twinkle * 0.95;
       ctx.globalAlpha = sa;
       const sc = s.b > 0.8 ? '#cfe8ff' : '#ffffff';
@@ -1357,7 +1359,7 @@ function drawBg() {
     const goff = groundX % 3;
     for (let bx = -goff; bx < W + 3; bx += 2.5) {
       const bi = ~~(bx);
-      const lean = Math.sin(bx * 0.85 + frame * 0.007) * 1.2;
+      const lean = Math.sin(bx * 0.85 + frameTime * 0.007) * 1.2;
       const bh   = 1.5 + ((bi * 7919 + 3) % 3) * 0.85;
       ctx.strokeStyle = bi % 2 === 0 ? gc1 : gc2;
       ctx.globalAlpha = 0.65;
@@ -1420,7 +1422,6 @@ function drawBg() {
       ctx.beginPath(); ctx.arc(fx + f.w * 0.5, bY - f.h * 0.88, r * 0.55, 0, Math.PI * 2); ctx.fill();
       ctx.beginPath(); ctx.arc(fx + f.w * 0.3, bY - f.h * 0.68, r * 0.38, 0, Math.PI * 2); ctx.fill();
     } else {                    // столбик — с градиентом и highlight
-      const ph = fx;
       const pg = ctx.createLinearGradient(fx, 0, fx + 2, 0);
       pg.addColorStop(0, '#795548'); pg.addColorStop(1, '#4e342e');
       ctx.fillStyle = pg; ctx.fillRect(fx, GROUND_Y - f.h, 2, f.h);
@@ -1439,7 +1440,7 @@ function drawBg() {
     if (alpha > 0) {
       ctx.globalAlpha = alpha; ctx.fillStyle = '#ffffff';
       for (let i = 0; i < 10; i++) {
-        const ly = (i * 12 + frame * 4) % (GROUND_Y - 6);
+        const ly = (i * 12 + frameTime * 4) % (GROUND_Y - 6);
         ctx.fillRect(0, ly, ~~(W * 0.15 + Math.random() * 8), 1);
       }
       ctx.globalAlpha = 1;
@@ -1602,7 +1603,7 @@ function answerQuiz(idx) {
   quizCorrect  = idx === quizData.correct;
   quizTimer    = 90;
   if (quizCorrect) {
-    score += 50;
+    quizBonus += 50;
     combo++;
     spawnBurst(W / 2, H / 2, '#4caf50', 12);
   } else {
@@ -1613,12 +1614,12 @@ function answerQuiz(idx) {
   }
 }
 
-function updateQuiz() {
-  updateParticles();
-  if (flash > 0) flash -= 0.045;
-  if (shake > 0) shake--;
+function updateQuiz(dt) {
+  updateParticles(dt);
+  if (flash > 0) flash = Math.max(0, flash - 0.045 * dt);
+  if (shake > 0) shake = Math.max(0, shake - dt);
   if (quizAnswered) {
-    quizTimer--;
+    quizTimer -= dt;
     if (quizTimer <= 0) {
       state = 'playing';
       nextQuizAt = ~~meters + 250;
@@ -1701,7 +1702,6 @@ function drawQuiz() {
 
 function drawMilestone() {
   if (mTimer <= 0) return;
-  mTimer--;
   ctx.globalAlpha = Math.min(mTimer / 20, 1);
   ctx.fillStyle = 'rgba(0,0,0,0.62)'; ctx.fillRect(W/2 - 55, H/2 - 10, 110, 14);
   ctx.fillStyle = '#ffd700'; ctx.font = 'bold 5px monospace'; ctx.textAlign = 'center';
@@ -1738,7 +1738,7 @@ function drawStart() {
   }
 
   // Персонаж на стартовом экране
-  ctx.drawImage(SPR['run' + ((frame >> 3) & 3)], ~~(W / 2) - PLAYER_W / 2, GROUND_Y - PLAYER_H);
+  drawPlayerSmooth(~~(W / 2) - PLAYER_W / 2, GROUND_Y - PLAYER_H, true);
 
   ctx.textAlign = 'left';
 }
@@ -1778,7 +1778,7 @@ function drawGameOver() {
 }
 
 // ── Счёт ─────────────────────────────────────────────────────────
-function calcScore() { return ~~meters + dodged * 15; }
+function calcScore() { return ~~meters + dodged * 15 + quizBonus; }
 
 // ── Telegram интеграция ───────────────────────────────────────────
 function submitScore(s) {
@@ -1790,13 +1790,16 @@ function submitScore(s) {
   // Отправляем лучший результат на сервер лидерборда.
   // Берём max(текущий, localStorage) — синхронизирует рекорд даже если сервер потерял данные.
   try {
-    var uid = new URLSearchParams(location.search).get('uid');
+    var params = new URLSearchParams(location.search);
+    var uid  = params.get('uid');
+    var tok  = params.get('tok') || '';
     var best = Math.max(s, hiScore);
     if (uid && best > 0) {
       fetch('https://pyege.ru/duel/game_score', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: parseInt(uid, 10), score: best })
+        body: JSON.stringify({ user_id: parseInt(uid, 10), score: best, tok: tok }),
+        keepalive: true   // переживёт закрытие страницы
       }).catch(function() {});
     }
   } catch (_) {}
@@ -1804,7 +1807,7 @@ function submitScore(s) {
 
 // ── Сброс и старт ─────────────────────────────────────────────────
 function reset() {
-  gSpeed = SPD_START; frame = 0; meters = 0; dodged = 0; combo = 0; score = 0;
+  gSpeed = SPD_START; frame = 0; frameTime = 0; dustT = 0; meters = 0; dodged = 0; combo = 0; score = 0; quizBonus = 0;
   shake = 0; flash = 0; spawnTimer = 100;
   obstacles = []; particles = []; bullets = [];
   milestoneDone.clear(); mMsg = ''; mTimer = 0;
@@ -1818,10 +1821,11 @@ function startGame() { reset(); state = 'playing'; }
 // ── Игровой цикл ─────────────────────────────────────────────────
 function update(dt) {
   frame++;
-  if (jumpBuf > 0) jumpBuf--;
+  frameTime += dt;
+  if (jumpBuf > 0) jumpBuf = Math.max(0, jumpBuf - dt);
   updateBg(dt);
 
-  if (state === 'quiz')    { updateQuiz(); return; }
+  if (state === 'quiz')    { updateQuiz(dt); return; }
   if (state === 'start' || state === 'gameover') return;
 
   if (!PL.dead) {
@@ -1833,13 +1837,14 @@ function update(dt) {
     if (meters >= nextQuizAt && quizData === null) triggerQuiz();
     updateObs(dt);
     updateBullets(dt);
-    if (PL.grounded && frame % 6 === 0) spawnDust(PL.x + PL.W * 0.4, GROUND_Y);
+    if (PL.grounded) { if ((dustT += dt) >= 6) { dustT = 0; spawnDust(PL.x + PL.W * 0.4, GROUND_Y); } } else { dustT = 0; }
   }
 
-  PL.update();
-  updateParticles();
-  if (flash > 0) flash -= 0.045;
-  if (shake > 0) shake--;
+  PL.update(dt);
+  updateParticles(dt);
+  if (flash > 0) flash = Math.max(0, flash - 0.045 * dt);
+  if (shake > 0) shake = Math.max(0, shake - dt);
+  if (mTimer > 0) mTimer = Math.max(0, mTimer - dt);
 }
 
 // ── Линии скорости ────────────────────────────────────────────────
@@ -1854,7 +1859,7 @@ function drawSpeedLines() {
   for (let i = 0; i < 12; i++) {
     const baseY = 22 + i * step;
     const spd = gSpeed * (0.7 + (i % 3) * 0.2);
-    const offset = (frame * spd * 0.7 + i * 137.5) % (W + 25);
+    const offset = (frameTime * spd * 0.7 + i * 137.5) % (W + 25);
     const x2 = W - offset;
     const len = 7 + (i % 4) * 4;
     const x1 = x2 + len;
