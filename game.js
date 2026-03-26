@@ -24,17 +24,17 @@ const isMobile = ('ontouchstart' in window) ||
   (typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches);
 
 function resize() {
-  // Cover-режим: заполняем весь экран, сохраняем пропорции 16:9.
+  // Contain-режим: канвас целиком виден на экране, сохраняем пропорции 16:9.
   const aspect = W / H;
   const winW   = window.innerWidth;
   const winH   = window.innerHeight;
   let cssW, cssH;
   if (winW / winH >= aspect) {
-    cssW = winW;
-    cssH = winW / aspect;
-  } else {
     cssH = winH;
     cssW = winH * aspect;
+  } else {
+    cssW = winW;
+    cssH = winW / aspect;
   }
   canvas.style.width  = cssW + 'px';
   canvas.style.height = cssH + 'px';
@@ -420,16 +420,16 @@ function drawPlayerSmooth(px, py, grounded) {
   // ── Тень ──
   if (grounded) {
     ctx.globalAlpha = 0.22; ctx.fillStyle = '#000';
-    ctx.beginPath(); ctx.ellipse(cx + 1, GROUND_Y - 0.3, 6, 1.2, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(cx + 3.5, GROUND_Y - 0.3, 6, 1.2, 0, 0, Math.PI * 2); ctx.fill();
     ctx.globalAlpha = 1;
   }
 
   // ── ЗАДНЯЯ НОГА (дальняя сторона, колено чуть назад) ──
-  const bFtX = cx + 1 - lg * 0.55;
-  const bKnX = cx + 0.8 - lg * 0.28;   // колено назад, не вперёд
+  const bFtX = cx + 2.5 - lg * 0.55;
+  const bKnX = cx + 2.3 - lg * 0.28;   // колено назад, не вперёд
   ctx.strokeStyle = '#0d47a1'; ctx.lineWidth = 2.4; ctx.globalAlpha = 0.9;
   ctx.beginPath();
-  ctx.moveTo(cx + 1, py + 12.5); ctx.lineTo(bKnX, py + 15.2); ctx.lineTo(bFtX, py + 17.2);
+  ctx.moveTo(cx + 2.5, py + 12.5); ctx.lineTo(bKnX, py + 15.2); ctx.lineTo(bFtX, py + 17.2);
   ctx.stroke();
   // Задний кроссовок (уменьшен)
   const bsx = bFtX - 1.8, bsy = py + 16.5;
@@ -458,9 +458,9 @@ function drawPlayerSmooth(px, py, grounded) {
   ctx.fillStyle = '#90a4ae'; ctx.fillRect(bsx + 1.2, bsy + 0.5, 1.8, 0.35);
   ctx.globalAlpha = 1;
 
-  // ── ЗАДНЯЯ РУКА (локоть загнут назад — V-образно) ──
-  const bElX = cx + 0.5 - arm * 0.15;   // локоть почти на месте, слегка назад
-  const bHdX = cx + 0.5 + arm * 0.82;   // кисть качается
+  // ── ЗАДНЯЯ РУКА (локоть качается, предплечье всегда загнуто вперёд) ──
+  const bElX = cx + 0.5 - arm * 0.5;    // локоть качается назад/вперёд
+  const bHdX = bElX + 2.0 + arm * 0.3;  // кисть всегда правее локтя
   ctx.strokeStyle = '#c62828'; ctx.lineWidth = 2.1; ctx.globalAlpha = 0.9;
   ctx.beginPath();
   ctx.moveTo(cx + 0.5, py + 6.5); ctx.lineTo(bElX, py + 9); ctx.lineTo(bHdX, py + 11.5);
@@ -496,11 +496,11 @@ function drawPlayerSmooth(px, py, grounded) {
   ctx.textAlign = 'left'; ctx.globalAlpha = 1;
 
   // ── ПЕРЕДНЯЯ НОГА (ближняя сторона) ──
-  const fKnX = cx + 2 + lg * 0.28 + 1;
-  const fFtX = cx + 2 + lg * 0.55;
+  const fKnX = cx + 4.5 + lg * 0.28 + 1;
+  const fFtX = cx + 4.5 + lg * 0.55;
   ctx.strokeStyle = '#1565c0'; ctx.lineWidth = 2.4;
   ctx.beginPath();
-  ctx.moveTo(cx + 2, py + 12.5); ctx.lineTo(fKnX, py + 15.2); ctx.lineTo(fFtX, py + 17.2);
+  ctx.moveTo(cx + 4.5, py + 12.5); ctx.lineTo(fKnX, py + 15.2); ctx.lineTo(fFtX, py + 17.2);
   ctx.stroke();
   // Передний кроссовок (уменьшен + детализация)
   const fsx = fFtX - 2.2, fsy = py + 16.5;
@@ -554,13 +554,13 @@ function drawPlayerSmooth(px, py, grounded) {
   ctx.fillStyle = '#ff8a65';
   ctx.beginPath(); ctx.arc(fHdX + 0.3, py + 11.4, 0.6, 0, Math.PI * 2); ctx.fill();
 
-  // ── ШЕЯ (сдвинута правее) ──
-  const nG = ctx.createLinearGradient(cx, 0, cx + 4, 0);
+  // ── ШЕЯ (центрирована под головой) ──
+  const nG = ctx.createLinearGradient(cx + 1.5, 0, cx + 4.7, 0);
   nG.addColorStop(0, '#c96840'); nG.addColorStop(1, '#ffb74d');
-  ctx.fillStyle = nG; rRect(cx + 0.5, py + 2.8, 3.2, 2.8, 0.6); ctx.fill();
+  ctx.fillStyle = nG; rRect(cx + 1.5, py + 2.8, 3.2, 2.8, 0.6); ctx.fill();
 
   // ── ГОЛОВА ──
-  const hcx = cx + 0.5, hcy = py + 0.8;
+  const hcx = cx + 3.0, hcy = py + 0.8;
   ctx.shadowColor = 'rgba(0,0,0,0.25)'; ctx.shadowBlur = 4;
   const faceG = ctx.createRadialGradient(hcx + 1.5, hcy - 1, 0.3, hcx, hcy, 5.2);
   faceG.addColorStop(0, '#ffe0b2'); faceG.addColorStop(0.55, '#ffb74d'); faceG.addColorStop(1, '#e64a19');
