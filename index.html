@@ -13,13 +13,7 @@
     }
     canvas {
       display: block;
-      /* Сохраняем соотношение 16:9 — без искажений на широких мониторах */
-      max-width: 100vw;
-      max-height: 100dvh;
-      width: auto;
-      height: 100dvh;
-      aspect-ratio: 16 / 9;
-      margin: 0 auto;
+      position: absolute;
       image-rendering: pixelated;
       image-rendering: crisp-edges;
     }
@@ -48,16 +42,13 @@
       from { transform: rotate(-20deg); }
       to   { transform: rotate(20deg); }
     }
-    @media (pointer: coarse) and (orientation: portrait) {
-      #rotate { display: flex; }
-    }
   </style>
 </head>
 <body>
-  <!-- Экран поворота (мобильные, портрет) -->
+  <!-- Экран поворота / растяжки окна (портретный режим) -->
   <div id="rotate">
-    <div class="icon">📱</div>
-    <div style="font-size:18px; font-weight:bold;">Переверни телефон!</div>
+    <div class="icon" id="rotate-icon">📱</div>
+    <div id="rotate-title" style="font-size:18px; font-weight:bold;">Переверни телефон!</div>
     <p>ЕГЭ Раннер работает<br>в горизонтальном режиме</p>
   </div>
 

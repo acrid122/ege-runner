@@ -24,14 +24,40 @@ const isMobile = ('ontouchstart' in window) ||
   (typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches);
 
 function resize() {
-  // Виртуальное разрешение фиксировано (W×H), CSS управляет масштабом.
-  // На ПК сохраняем 16:9 через CSS (aspect-ratio в index.html).
-  // На мобильных растягиваем на весь экран в landscape-режиме.
-  if (isMobile) {
-    canvas.style.width  = window.innerWidth  + 'px';
-    canvas.style.height = window.innerHeight + 'px';
+  // Cover-режим: заполняем весь экран, сохраняем пропорции 16:9.
+  const aspect = W / H;
+  const winW   = window.innerWidth;
+  const winH   = window.innerHeight;
+  let cssW, cssH;
+  if (winW / winH >= aspect) {
+    cssW = winW;
+    cssH = winW / aspect;
+  } else {
+    cssH = winH;
+    cssW = winH * aspect;
   }
-  // На десктопе CSS aspect-ratio + height:100dvh сам держит пропорции.
+  canvas.style.width  = cssW + 'px';
+  canvas.style.height = cssH + 'px';
+  canvas.style.left   = ((winW - cssW) / 2) + 'px';
+  canvas.style.top    = ((winH - cssH) / 2) + 'px';
+
+  // Портретный режим — показываем оверлей и на мобиле, и на десктопе
+  const rotEl    = document.getElementById('rotate');
+  const iconEl   = document.getElementById('rotate-icon');
+  const titleEl  = document.getElementById('rotate-title');
+  if (rotEl) {
+    const isPortrait = winH > winW;
+    rotEl.style.display = isPortrait ? 'flex' : 'none';
+    if (isPortrait && iconEl && titleEl) {
+      if (isMobile) {
+        iconEl.textContent = '📱';
+        titleEl.textContent = 'Переверни телефон!';
+      } else {
+        iconEl.textContent = '🖥️';
+        titleEl.textContent = 'Растяни окно пошире!';
+      }
+    }
+  }
 }
 window.addEventListener('resize', resize);
 resize();
@@ -398,31 +424,44 @@ function drawPlayerSmooth(px, py, grounded) {
     ctx.globalAlpha = 1;
   }
 
-  // ── ЗАДНЯЯ НОГА (нога дальней стороны, таз сдвинут вправо) ──
-  const bKnX = cx + 1 - lg * 0.28 - 1;
+  // ── ЗАДНЯЯ НОГА (дальняя сторона, колено чуть назад) ──
   const bFtX = cx + 1 - lg * 0.55;
-  ctx.strokeStyle = '#0d47a1'; ctx.lineWidth = 2.4; ctx.globalAlpha = 0.7;
+  const bKnX = cx + 0.8 - lg * 0.28;   // колено назад, не вперёд
+  ctx.strokeStyle = '#0d47a1'; ctx.lineWidth = 2.4; ctx.globalAlpha = 0.9;
   ctx.beginPath();
   ctx.moveTo(cx + 1, py + 12.5); ctx.lineTo(bKnX, py + 15.2); ctx.lineTo(bFtX, py + 17.2);
   ctx.stroke();
-  // Задний ботинок (путь, не эллипс)
-  const bsx = bFtX - 2.5, bsy = py + 16.5;
-  ctx.fillStyle = '#455a64';
+  // Задний кроссовок (уменьшен)
+  const bsx = bFtX - 1.8, bsy = py + 16.5;
+  ctx.fillStyle = '#546e7a';
   ctx.beginPath();
-  ctx.moveTo(bsx, bsy + 2); ctx.bezierCurveTo(bsx, bsy + 0.5, bsx + 0.8, bsy, bsx + 1.8, bsy);
-  ctx.lineTo(bsx + 4.5, bsy - 0.2); ctx.quadraticCurveTo(bsx + 6, bsy + 0.3, bsx + 5.8, bsy + 1.6);
-  ctx.lineTo(bsx + 5.2, bsy + 2.5); ctx.lineTo(bsx, bsy + 2.5); ctx.closePath(); ctx.fill();
-  ctx.fillStyle = '#263238';
+  ctx.moveTo(bsx, bsy + 1.8); ctx.bezierCurveTo(bsx, bsy + 0.4, bsx + 0.7, bsy, bsx + 1.6, bsy);
+  ctx.lineTo(bsx + 3.5, bsy - 0.1); ctx.quadraticCurveTo(bsx + 4.8, bsy + 0.2, bsx + 4.6, bsy + 1.4);
+  ctx.lineTo(bsx + 4.1, bsy + 2.0); ctx.lineTo(bsx, bsy + 2.0); ctx.closePath(); ctx.fill();
+  // Мысок (чуть светлее)
+  ctx.fillStyle = '#607d8b';
   ctx.beginPath();
-  ctx.moveTo(bsx - 0.2, bsy + 2.5); ctx.lineTo(bsx + 5.2, bsy + 2.5);
-  ctx.lineTo(bsx + 6.2, bsy + 1.6); ctx.quadraticCurveTo(bsx + 6.5, bsy + 2.2, bsx + 5.8, bsy + 3.2);
-  ctx.lineTo(bsx - 0.2, bsy + 3.2); ctx.closePath(); ctx.fill();
+  ctx.moveTo(bsx + 2.8, bsy - 0.1); ctx.lineTo(bsx + 3.5, bsy - 0.1);
+  ctx.quadraticCurveTo(bsx + 4.8, bsy + 0.2, bsx + 4.6, bsy + 1.4);
+  ctx.lineTo(bsx + 3.8, bsy + 0.8); ctx.quadraticCurveTo(bsx + 3.7, bsy + 0.2, bsx + 2.8, bsy - 0.1);
+  ctx.closePath(); ctx.fill();
+  // Подошва
+  ctx.fillStyle = '#212121';
+  ctx.beginPath();
+  ctx.moveTo(bsx - 0.1, bsy + 2.0); ctx.lineTo(bsx + 4.1, bsy + 2.0);
+  ctx.lineTo(bsx + 5.0, bsy + 1.4); ctx.quadraticCurveTo(bsx + 5.1, bsy + 1.9, bsx + 4.6, bsy + 2.6);
+  ctx.lineTo(bsx - 0.1, bsy + 2.6); ctx.closePath(); ctx.fill();
+  // Полоска
+  ctx.strokeStyle = '#78909c'; ctx.lineWidth = 0.5;
+  ctx.beginPath(); ctx.moveTo(bsx + 0.4, bsy + 1.4); ctx.quadraticCurveTo(bsx + 2, bsy + 0.7, bsx + 3.5, bsy + 1.0); ctx.stroke();
+  // Шнурки
+  ctx.fillStyle = '#90a4ae'; ctx.fillRect(bsx + 1.2, bsy + 0.5, 1.8, 0.35);
   ctx.globalAlpha = 1;
 
-  // ── ЗАДНЯЯ РУКА (плечо на дальней стороне) ──
-  const bElX = cx + 0.5 + arm * 0.3;
-  const bHdX = cx - 1 + arm * 0.6;
-  ctx.strokeStyle = '#c62828'; ctx.lineWidth = 2.1; ctx.globalAlpha = 0.65;
+  // ── ЗАДНЯЯ РУКА (локоть загнут назад — V-образно) ──
+  const bElX = cx + 0.5 - arm * 0.15;   // локоть почти на месте, слегка назад
+  const bHdX = cx + 0.5 + arm * 0.82;   // кисть качается
+  ctx.strokeStyle = '#c62828'; ctx.lineWidth = 2.1; ctx.globalAlpha = 0.9;
   ctx.beginPath();
   ctx.moveTo(cx + 0.5, py + 6.5); ctx.lineTo(bElX, py + 9); ctx.lineTo(bHdX, py + 11.5);
   ctx.stroke();
@@ -430,8 +469,8 @@ function drawPlayerSmooth(px, py, grounded) {
   ctx.beginPath(); ctx.arc(bHdX, py + 11.8, 1.1, 0, Math.PI * 2); ctx.fill();
   ctx.globalAlpha = 1;
 
-  // ── ТЕЛО (сдвинуто вправо — ракурс 3/4, персонаж смотрит вправо) ──
-  const bx0 = cx - 1.5, bw = 7.5;
+  // ── ТЕЛО (выровнено с шеей — без горба слева) ──
+  const bx0 = cx + 0.5, bw = 6.0;
   const bodyG = ctx.createLinearGradient(bx0, py + 4.5, bx0 + bw, py + 12.5);
   bodyG.addColorStop(0, '#b71c1c'); bodyG.addColorStop(0.25, '#e53935');
   bodyG.addColorStop(0.7, '#f44336'); bodyG.addColorStop(1, '#d32f2f');
@@ -441,10 +480,10 @@ function drawPlayerSmooth(px, py, grounded) {
   // Правый блик (ближняя)
   ctx.fillStyle = '#ffcdd2'; ctx.globalAlpha = 0.18; ctx.fillRect(bx0 + bw - 2, py + 5.5, 1.5, 6.5);
   ctx.globalAlpha = 1;
-  // Воротник V-neck (смещён правее)
+  // Воротник V-neck
   ctx.strokeStyle = 'rgba(255,220,220,0.7)'; ctx.lineWidth = 0.65;
   ctx.beginPath();
-  ctx.moveTo(bx0 + 1, py + 4.5); ctx.lineTo(bx0 + 3, py + 7); ctx.lineTo(bx0 + 5, py + 4.5);
+  ctx.moveTo(bx0 + 1.5, py + 4.5); ctx.lineTo(bx0 + 3.0, py + 7); ctx.lineTo(bx0 + 4.5, py + 4.5);
   ctx.stroke();
   // Ремень
   ctx.fillStyle = '#1a237e'; rRect(bx0, py + 12, bw, 1.6, 0.4); ctx.fill();
@@ -456,36 +495,54 @@ function drawPlayerSmooth(px, py, grounded) {
   ctx.textAlign = 'center'; ctx.fillText('1', bx0 + bw / 2, py + 11.5);
   ctx.textAlign = 'left'; ctx.globalAlpha = 1;
 
-  // ── ПЕРЕДНЯЯ НОГА (нога ближней стороны) ──
+  // ── ПЕРЕДНЯЯ НОГА (ближняя сторона) ──
   const fKnX = cx + 2 + lg * 0.28 + 1;
   const fFtX = cx + 2 + lg * 0.55;
   ctx.strokeStyle = '#1565c0'; ctx.lineWidth = 2.4;
   ctx.beginPath();
   ctx.moveTo(cx + 2, py + 12.5); ctx.lineTo(fKnX, py + 15.2); ctx.lineTo(fFtX, py + 17.2);
   ctx.stroke();
-  // Передний кроссовок (путь)
-  const fsx = fFtX - 3, fsy = py + 16.5;
-  ctx.fillStyle = '#f0f0f0';
+  // Передний кроссовок (уменьшен + детализация)
+  const fsx = fFtX - 2.2, fsy = py + 16.5;
+  // Верхняя часть (белая)
+  ctx.fillStyle = '#f5f5f5';
   ctx.beginPath();
-  ctx.moveTo(fsx, fsy + 2); ctx.bezierCurveTo(fsx, fsy + 0.5, fsx + 1, fsy, fsx + 2.5, fsy);
-  ctx.lineTo(fsx + 5.5, fsy - 0.3); ctx.quadraticCurveTo(fsx + 7.2, fsy + 0.2, fsx + 7, fsy + 1.8);
-  ctx.lineTo(fsx + 6.2, fsy + 2.8); ctx.lineTo(fsx, fsy + 2.8); ctx.closePath(); ctx.fill();
+  ctx.moveTo(fsx, fsy + 1.9); ctx.bezierCurveTo(fsx, fsy + 0.4, fsx + 0.8, fsy, fsx + 2.0, fsy);
+  ctx.lineTo(fsx + 4.4, fsy - 0.2); ctx.quadraticCurveTo(fsx + 5.8, fsy + 0.2, fsx + 5.6, fsy + 1.6);
+  ctx.lineTo(fsx + 5.0, fsy + 2.3); ctx.lineTo(fsx, fsy + 2.3); ctx.closePath(); ctx.fill();
+  // Мысок (чуть темнее)
+  ctx.fillStyle = '#eeeeee';
+  ctx.beginPath();
+  ctx.moveTo(fsx + 3.2, fsy - 0.1); ctx.lineTo(fsx + 4.4, fsy - 0.2);
+  ctx.quadraticCurveTo(fsx + 5.8, fsy + 0.2, fsx + 5.6, fsy + 1.6);
+  ctx.lineTo(fsx + 4.8, fsy + 1.0); ctx.quadraticCurveTo(fsx + 4.7, fsy + 0.2, fsx + 3.2, fsy - 0.1);
+  ctx.closePath(); ctx.fill();
   // Подошва
   ctx.fillStyle = '#1a1a1a';
   ctx.beginPath();
-  ctx.moveTo(fsx - 0.2, fsy + 2.8); ctx.lineTo(fsx + 6.2, fsy + 2.8);
-  ctx.lineTo(fsx + 7.5, fsy + 1.8); ctx.quadraticCurveTo(fsx + 7.8, fsy + 2.5, fsx + 7, fsy + 3.6);
-  ctx.lineTo(fsx - 0.2, fsy + 3.6); ctx.closePath(); ctx.fill();
-  // Красная брендовая полоска
-  ctx.strokeStyle = '#ef5350'; ctx.lineWidth = 0.7;
+  ctx.moveTo(fsx - 0.2, fsy + 2.3); ctx.lineTo(fsx + 5.0, fsy + 2.3);
+  ctx.lineTo(fsx + 6.1, fsy + 1.6); ctx.quadraticCurveTo(fsx + 6.3, fsy + 2.2, fsx + 5.7, fsy + 3.0);
+  ctx.lineTo(fsx - 0.2, fsy + 3.0); ctx.closePath(); ctx.fill();
+  // Средняя полоска подошвы (EVA)
+  ctx.fillStyle = '#424242';
+  ctx.fillRect(fsx, fsy + 2.3, 5.0, 0.5);
+  // Брендовая полоска
+  ctx.strokeStyle = '#ef5350'; ctx.lineWidth = 0.6;
   ctx.beginPath();
-  ctx.moveTo(fsx + 0.5, fsy + 1.8); ctx.quadraticCurveTo(fsx + 3.5, fsy + 0.8, fsx + 5.8, fsy + 1.5);
+  ctx.moveTo(fsx + 0.4, fsy + 1.5); ctx.quadraticCurveTo(fsx + 2.5, fsy + 0.65, fsx + 4.5, fsy + 1.2);
   ctx.stroke();
-  // Шнурки
-  ctx.fillStyle = '#bdbdbd'; ctx.fillRect(fsx + 2, fsy + 0.7, 3, 0.5);
-  ctx.fillStyle = '#e0e0e0'; ctx.fillRect(fsx + 2.2, fsy + 0.4, 2.6, 0.3);
+  // Шнурки + крючки
+  ctx.fillStyle = '#bdbdbd'; ctx.fillRect(fsx + 1.5, fsy + 0.65, 2.4, 0.4);
+  ctx.fillStyle = '#e0e0e0'; ctx.fillRect(fsx + 1.7, fsy + 0.35, 2.0, 0.3);
+  ctx.fillStyle = '#9e9e9e';
+  ctx.fillRect(fsx + 1.5, fsy + 0.5, 0.35, 0.55);  // левый крючок
+  ctx.fillRect(fsx + 3.5, fsy + 0.5, 0.35, 0.55);  // правый крючок
+  // Язычок
+  ctx.fillStyle = '#f5f5f5'; ctx.globalAlpha = 0.6;
+  ctx.fillRect(fsx + 1.6, fsy, 1.5, 0.6);
+  ctx.globalAlpha = 1;
 
-  // ── ПЕРЕДНЯЯ РУКА (плечо на ближней стороне) ──
+  // ── ПЕРЕДНЯЯ РУКА (локоть на ближней стороне) ──
   const fElX = cx + 4.5 - arm * 0.3;
   const fHdX = cx + 6 - arm * 0.6;
   ctx.strokeStyle = '#ef5350'; ctx.lineWidth = 2.1;
@@ -711,7 +768,7 @@ const OBS_DEFS = [
   { id: 'drone',    w: 16, h: 8,  weight: 18, fly: true, fy: 65 },
   { id: 'bat',      w: 12, h: 7,  weight: 14, fly: true, fy: 72 },
   // Снайпер-спутник: летит высоко, стреляет пулей вниз (появляется после 400м)
-  { id: 'sniper',   w: 18, h: 10, weight: 8,  fly: true, fy: 24 },
+  { id: 'sniper',   w: 18, h: 10, weight: 8,  fly: true, fy: 18 },
 ];
 
 let obstacles    = [];
@@ -789,10 +846,33 @@ function updateObs(dt) {
       }
     }
 
-    // Снайпер стреляет, когда залетает в зону выстрела
-    if (o.id === 'sniper' && !o.fired && o.x + o.w / 2 < W * 0.62) {
-      o.fired = true;
-      spawnBullet(o.x + o.w / 2, o.y + o.h + 2);
+    // Снайпер: двухфазная атака
+    if (o.id === 'sniper') {
+      if (o.phase == null) o.phase = 0;
+      const FY_LOW = 78, FY_HIGH = 18;
+
+      // Фаза 0 → 1: начало снижения
+      if (o.phase === 0 && o.x < W * 0.84) o.phase = 1;
+
+      // Фаза 1: снижение до низкой высоты, затем выстрел по нижней траектории
+      if (o.phase === 1) {
+        o.y = Math.min(o.y + 2.5 * dt, FY_LOW);
+        if (o.y >= FY_LOW - 0.5 && o.x < W * 0.63) {
+          spawnBullet(o.x, GROUND_Y - 6);   // низкая пуля — нужно прыгнуть
+          o.fired = true;
+          o.phase = 2;
+        }
+      }
+
+      // Фаза 2: подъём и второй выстрел по верхней траектории
+      if (o.phase === 2) {
+        o.y = Math.max(o.y - 3 * dt, FY_HIGH);
+        if (o.y <= FY_HIGH + 1 && !o.fired2 && o.x < W * 0.52) {
+          spawnBullet(o.x, 75);              // высокая пуля — не прыгать
+          o.fired2 = true;
+          o.phase = 3;
+        }
+      }
     }
   }
   obstacles = obstacles.filter(o => o.x > -40);
@@ -815,7 +895,7 @@ function rRect(x, y, w, h, r) {
 }
 
 function drawObs(o) {
-  const { id, x, y, w, h, animT, fired } = o;
+  const { id, x, y, w, h, animT, fired, fired2, phase } = o;
   ctx.save();
 
   if (id === 'double') {
@@ -1061,31 +1141,31 @@ function drawObs(o) {
     ctx.beginPath(); ctx.moveTo(x - 1, cy); ctx.lineTo(x + 4, cy); ctx.stroke();
     ctx.beginPath(); ctx.moveTo(x + w - 4, cy); ctx.lineTo(x + w + 1, cy); ctx.stroke();
     // Корпус
-    const eyeCol = fired ? '#42a5f5' : '#f50057';
+    const eyeCol = fired2 ? '#42a5f5' : fired ? '#ff9800' : '#f50057';
     ctx.shadowColor = eyeCol; ctx.shadowBlur = 3 + pulse * 4;
     const sg = ctx.createLinearGradient(cx, y + 1, cx, y + h - 1);
     sg.addColorStop(0, '#90a4ae'); sg.addColorStop(0.5, '#546e7a'); sg.addColorStop(1, '#263238');
     ctx.fillStyle = sg;
     rRect(x + 4, y + 1, w - 8, h - 2, 2); ctx.fill();
     ctx.shadowBlur = 0;
-    // Ствол
-    ctx.fillStyle = '#37474f'; ctx.fillRect(cx - 1, y + h - 1, 2, 4);
-    ctx.fillStyle = '#000';    ctx.fillRect(cx - 0.5, y + h + 2, 1, 2);
-    // Прицел-линза
-    ctx.shadowColor = eyeCol; ctx.shadowBlur = fired ? 3 : 5 * pulse;
+    // Ствол (направлен влево)
+    ctx.fillStyle = '#37474f'; ctx.fillRect(x - 6, cy - 1, 6, 2);
+    ctx.fillStyle = '#000';    ctx.fillRect(x - 9, cy - 0.5, 3, 1);
+    // Прицел-линза (3 состояния: до 1 выстрела — красный, между — оранжевый, после 2 — синий)
+    ctx.shadowColor = eyeCol; ctx.shadowBlur = fired2 ? 3 : 5 * pulse;
     ctx.fillStyle = eyeCol;
     ctx.beginPath(); ctx.arc(cx, cy - 1.5, 2.2, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = fired ? '#bbdefb' : '#ff80ab';
+    ctx.fillStyle = fired2 ? '#bbdefb' : fired ? '#ffe0b2' : '#ff80ab';
     ctx.beginPath(); ctx.arc(cx - 0.5, cy - 2.2, 0.9, 0, Math.PI * 2); ctx.fill();
     ctx.shadowBlur = 0;
-    // Лазерный прицел (до выстрела)
-    if (!fired) {
-      const lh2 = GROUND_Y - (y + h) - 4;
+    // Горизонтальный лазерный прицел (до тех пор, пока не сделаны оба выстрела)
+    if (!fired2) {
+      const targetY = fired ? 75 : GROUND_Y - 6;  // фаза 1: низко, фаза 2: высоко
       const la = 0.35 + pulse * 0.35;
       ctx.globalAlpha = la * 0.07; ctx.fillStyle = '#f50057';
-      ctx.fillRect(cx - 9, y + h + 3, 18, lh2);
-      ctx.globalAlpha = la * 0.20; ctx.fillRect(cx - 3, y + h + 3, 6, lh2);
-      ctx.globalAlpha = la * 0.70; ctx.fillRect(cx - 0.8, y + h + 3, 1.6, lh2);
+      ctx.fillRect(0, targetY - 9, x, 18);
+      ctx.globalAlpha = la * 0.20; ctx.fillRect(0, targetY - 3, x, 6);
+      ctx.globalAlpha = la * 0.70; ctx.fillRect(0, targetY - 0.8, x, 1.6);
       ctx.globalAlpha = 1;
     }
     ctx.restore(); return;
@@ -1151,28 +1231,15 @@ function drawParticles() {
 let bullets = [];
 
 function spawnBullet(x, y) {
-  bullets.push({ x, y, vy: 0.6, falling: true, landTimer: 0, hit: false });
+  bullets.push({ x, y, vx: -(gSpeed + 2.5), hit: false });
 }
 
 function updateBullets(dt) {
   const pl = PL.hitbox();
   for (const b of bullets) {
-    b.x -= gSpeed * dt;
-    if (b.falling) {
-      b.vy = Math.min(b.vy + 0.40 * dt, 10);
-      b.y  += b.vy * dt;
-      if (b.y >= GROUND_Y - 3) {
-        b.falling = false;
-        b.y = GROUND_Y - 3;
-        b.landTimer = 95;
-        spawnBurst(b.x, GROUND_Y - 1, '#ff6d00', 8);
-      }
-    } else {
-      b.landTimer -= dt;
-    }
+    b.x += b.vx * dt;
     if (!PL.dead && !b.hit) {
-      const bx = b.x - 2.5, bw = 5;
-      const by = b.falling ? b.y - 2 : GROUND_Y - 4, bh = b.falling ? 5 : 4;
+      const bx = b.x - 3, bw = 6, by = b.y - 3, bh = 6;
       if (pl.x + pl.w > bx && pl.x < bx + bw &&
           pl.y + pl.h > by && pl.y < by + bh) {
         b.hit = true;
@@ -1181,38 +1248,24 @@ function updateBullets(dt) {
       }
     }
   }
-  bullets = bullets.filter(b => b.x > -30 && (b.falling || b.landTimer > 0));
+  bullets = bullets.filter(b => b.x > -30 && !b.hit);
 }
 
 function drawBullets() {
   for (const b of bullets) {
     ctx.save();
-    if (b.falling) {
-      // Огненная пуля с хвостом
-      const trail = Math.min(b.vy * 2, 16);
-      ctx.shadowColor = '#ff6d00'; ctx.shadowBlur = 6;
-      const tg = ctx.createLinearGradient(b.x, b.y, b.x, b.y + trail);
-      tg.addColorStop(0, 'rgba(255,152,0,0.85)');
-      tg.addColorStop(1, 'rgba(255,109,0,0)');
-      ctx.fillStyle = tg; ctx.fillRect(b.x - 1, b.y, 2, trail);
-      // Ядро
-      ctx.fillStyle = '#ffcc02';
-      ctx.beginPath(); ctx.arc(b.x, b.y, 2.2, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath(); ctx.arc(b.x - 0.5, b.y - 0.5, 0.9, 0, Math.PI * 2); ctx.fill();
-      ctx.shadowBlur = 0;
-    } else {
-      // Опасная зона на земле
-      const fa = Math.min(b.landTimer / 35, 1);
-      ctx.globalAlpha = fa * 0.25; ctx.fillStyle = '#ff6d00';
-      ctx.fillRect(b.x - 6, GROUND_Y - 5, 12, 5);
-      ctx.globalAlpha = fa * 0.75; ctx.shadowColor = '#ff6d00'; ctx.shadowBlur = 4;
-      ctx.fillStyle = '#ff8f00';
-      ctx.fillRect(b.x - 3, GROUND_Y - 4, 6, 4);
-      ctx.globalAlpha = fa;
-      ctx.fillStyle = '#ffcc02'; ctx.fillRect(b.x - 1.5, GROUND_Y - 3, 3, 2);
-      ctx.shadowBlur = 0;
-    }
+    // Горизонтальная огненная пуля с хвостом (хвост тянется вправо — назад по движению)
+    ctx.shadowColor = '#ff6d00'; ctx.shadowBlur = 6;
+    const tg = ctx.createLinearGradient(b.x, b.y, b.x + 20, b.y);
+    tg.addColorStop(0, 'rgba(255,152,0,0.85)');
+    tg.addColorStop(1, 'rgba(255,109,0,0)');
+    ctx.fillStyle = tg; ctx.fillRect(b.x, b.y - 1, 20, 2);
+    // Ядро
+    ctx.fillStyle = '#ffcc02';
+    ctx.beginPath(); ctx.arc(b.x, b.y, 2.2, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath(); ctx.arc(b.x + 0.5, b.y - 0.5, 0.9, 0, Math.PI * 2); ctx.fill();
+    ctx.shadowBlur = 0;
     ctx.globalAlpha = 1;
     ctx.restore();
   }
