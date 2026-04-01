@@ -1741,14 +1741,19 @@ function drawQuiz() {
     lines.forEach((l, i) => ctx.fillText(l, btn.x + btn.w / 2, startY + i * lineH));
   });
 
-  // Результат
+  // Результат / подсказка — плашка с фоном для читаемости
   if (quizAnswered) {
+    const msg = quizCorrect ? '✓ ВЕРНО!  +50 очков' : '✗ Неверно — скорость растёт!';
+    ctx.fillStyle = quizCorrect ? 'rgba(27,94,32,0.85)' : 'rgba(98,10,10,0.85)';
+    ctx.fillRect(4, H - 11, W - 8, 9);
     ctx.font = 'bold 5px monospace';
-    ctx.fillStyle = quizCorrect ? '#4caf50' : '#ef5350';
-    ctx.fillText(quizCorrect ? '✓ ВЕРНО!  +50 очков' : '✗ Неверно — скорость растёт!', W / 2, H - 4);
+    ctx.fillStyle = quizCorrect ? '#a5d6a7' : '#ef9a9a';
+    ctx.fillText(msg, W / 2, H - 4);
   } else {
-    ctx.fillStyle = '#546e7a'; ctx.font = '3px monospace';
-    ctx.fillText('выбери правильный ответ', W / 2, H - 4);
+    ctx.fillStyle = 'rgba(30,40,60,0.75)';
+    ctx.fillRect(4, H - 11, W - 8, 9);
+    ctx.fillStyle = '#80cbc4'; ctx.font = 'bold 3.5px monospace';
+    ctx.fillText('▶  выбери правильный ответ', W / 2, H - 4);
   }
   ctx.textAlign = 'left';
 }
